@@ -24,7 +24,7 @@ def get_id():
     # replace table scan ###
     resp = table.scan()
     print(str(resp))
-    return Response(json.dumps(str(resp['Items'])), mimetype='application/json', status=200)
+    return Response(json.dumps(resp['Items']), mimetype='application/json', status=200)
     
 # curl -i -X POST -d'{"name":"Shiran", "department":"Surgery", "years":"20"}' -H "Content-Type: application/json" http://localhost:5000/set_doctor/4
 @application.route('/set_doctor/<id>', methods=['POST'])
@@ -51,7 +51,7 @@ def set_doc(id):
     
     return Response(json.dumps(item), mimetype='application/json', status=200)
 
-#curl -i http://"localhost:5000/del_doc?id=1"
+#curl -i http://"localhost:5000/del_doctor?id=1"
 @application.route('/del_doctor' , methods=['GET'])
 
 def del_doc():
