@@ -5,6 +5,7 @@ from helloworld.flaskrun import flaskrun
 import requests
 import boto3
 from flask_cors import CORS
+from datetime import datetime
 
 application = Flask(__name__)
 CORS(application, resources={r"/*": {"origins": "*"}})
@@ -26,23 +27,18 @@ def get_id():
     print(str(resp))
     return Response(json.dumps(resp['Items']), mimetype='application/json', status=200)
     
-# curl -i -X POST -d'{"name":"Shiran", "department":"Surgery", "years":"20"}' -H "Content-Type: application/json" http://localhost:5000/set_doctor/4
-@application.route('/set_doctor/<id>', methods=['POST'])
-def set_doc(id):
+# curl -i http://localhost:5000/set_doctor?id=2&name=maor&department=finance&years=13
+@application.route('/set_doctor', methods=['GET'])
+def set_doc():
     
     dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
     table = dynamodb.Table('doctors')
-    # get post data  
-    data = request.data
-    # convert the json to dictionary
-    data_dict = json.loads(data)
-    # retreive the parameters
-    name = data_dict.get('name','default')
-    department = data_dict.get('department','defualt')
-    years = data_dict.get('years', 'default')
-
+    did = request.args.get('id')
+    name = request.args.get('name')
+    department = request.args.get('department')
+    years = request.args.get('years')
     item={
-    'id': id,
+    'id': did,
     'name': name,
     'department': department, 
     'years': years 
@@ -66,6 +62,68 @@ def del_doc():
         )
     print (str(resp))
     return Response(json.dumps(str(resp)), mimetype='application/json', status=200)
+
+#curl localhost:8000/analyze/doctorspictures/doc1.jpg  
+
+@application.route('/analyze/<bucket>/<image>', methods=['GET'])
+def analyze(bucket='doctorspictures', image='doc1.jpeg'):
+    return detect_labels(bucket, image)
+def detect_labels(bucket, key, max_labels=3, min_confidence=90, region="us-east-1"):
+    rekognition = boto3.client("rekognition", region)
+    s3 = boto3.resource('s3', region_name = 'us-east-1')
+    image = s3.Object(bucket, key) # Get an Image from S3
+    img_data = image.get()['Body'].read() # Read the image
+    response = rekognition.detect_labels(
+        Image={
+            'Bytes': img_data
+        },
+        MaxLabels=max_labels,
+		MinConfidence=min_confidence,
+    )
+    return json.dumps(response['Labels'])
+    
+
+
+#curl localhost:8000/comp_face/doc1.jpg/doc2.jpg
+
+@application.route('/comp_face/<source_image>/<target_image>', methods=['GET'])
+def compare_face(source_image, target_image):
+    # change region and bucket accordingly
+    region = 'us-east-1'
+    bucket_name = 'doctorspictures'
+	
+    rekognition = boto3.client("rekognition", region)
+    response = rekognition.compare_faces(
+        SourceImage={
+    		"S3Object": {
+    			"Bucket": bucket_name,
+    			"Name":source_image,
+    		}
+    	},
+    	TargetImage={
+    		"S3Object": {
+    			"Bucket": bucket_name,
+    			"Name": target_image,
+    		}
+    	},
+		# play with the minimum level of similarity
+        SimilarityThreshold=50,
+    )
+    # return 0 if below similarity threshold
+    return json.dumps(response['FaceMatches'] if response['FaceMatches'] != [] else [{"Similarity": 0.0}])
+    
+    
+#@application.route('/upload_image' , methods=['POST'])
+
+def uploadImage():
+    mybucket = 'doctorspictures'
+    filobject = request.files['img']
+    s3 = boto3.resource('s3', region_name='us-east-1')
+    date_time = datetime.now()
+    dt_string = date_time.strftime("%d-%m-%Y-%H-%M-%S")
+    filename = "%s.jpg" % dt_string
+    s3.Bucket(mybucket).upload_fileobj(filobject, filename, ExtraArgs={'ACL': 'public-read', 'ContentType': 'image/jpeg'})
+    return {"imgName": filename}
 
 if __name__ == '__main__':
     flaskrun(application)
