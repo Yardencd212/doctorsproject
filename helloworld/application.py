@@ -115,6 +115,7 @@ def compare_face(source_image, target_image):
     return json.dumps(response['FaceMatches'] if response['FaceMatches'] != [] else [{"Similarity": 0.0}])
   
   
+  ##
 @application.route('/upload_image' , methods=['POST'])
 def uploadImage():
     mybucket = 'doctorspictures'
