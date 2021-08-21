@@ -27,7 +27,7 @@ def get_id():
     print(str(resp))
     return Response(json.dumps(resp['Items']), mimetype='application/json', status=200)
     
-# curl -i http://localhost:5000/set_doctor?id=2&name=maor&department=finance&years=13
+# curl -i http://"localhost:5000/set_doctor?id=8&name=Dor&department=finance&years=13"
 @application.route('/set_doctor', methods=['GET'])
 def set_doc():
     
@@ -63,10 +63,10 @@ def del_doc():
     print (str(resp))
     return Response(json.dumps(str(resp)), mimetype='application/json', status=200)
 
-#curl localhost:8000/analyze/doctorspictures/doc1.jpg  
+#curl localhost:8000/analyze/doctorspictures/stato.jpg 
 
 @application.route('/analyze/<bucket>/<image>', methods=['GET'])
-def analyze(bucket='doctorspictures', image='doc1.jpeg'):
+def analyze(bucket='doctorspictures', image='stato.jpg'):
     return detect_labels(bucket, image)
 def detect_labels(bucket, key, max_labels=3, min_confidence=90, region="us-east-1"):
     rekognition = boto3.client("rekognition", region)
@@ -111,19 +111,26 @@ def compare_face(source_image, target_image):
     )
     # return 0 if below similarity threshold
     return json.dumps(response['FaceMatches'] if response['FaceMatches'] != [] else [{"Similarity": 0.0}])
+  
+  
+@application.route('/upload_image', methods=['GET'])
+def upload_file():
+    time = str(datetime.now())
+    file_name = 'myUpload' + time
+    bucket = 'doctorspictures'
+    client = boto3.client('s3')
+    return client.put_object(Body='', Bucket=bucket, Key=file_name)  
     
-    
-#@application.route('/upload_image' , methods=['POST'])
-
-def uploadImage():
-    mybucket = 'doctorspictures'
-    filobject = request.files['img']
-    s3 = boto3.resource('s3', region_name='us-east-1')
-    date_time = datetime.now()
-    dt_string = date_time.strftime("%d-%m-%Y-%H-%M-%S")
-    filename = "%s.jpg" % dt_string
-    s3.Bucket(mybucket).upload_fileobj(filobject, filename, ExtraArgs={'ACL': 'public-read', 'ContentType': 'image/jpeg'})
-    return {"imgName": filename}
+# @application.route('/upload_image' , methods=['POST'])
+# def uploadImage():
+#     mybucket = 'doctorspictures'
+#     filobject = request.files['img']
+#     s3 = boto3.resource('s3', region_name='us-east-1')
+#     date_time = datetime.now()
+#     dt_string = date_time.strftime("%d-%m-%Y-%H-%M-%S")
+#     filename = "%s.jpg" % dt_string
+#     s3.Bucket(mybucket).upload_fileobj(filobject, filename, ExtraArgs={'ACL': 'public-read', 'ContentType': 'image/jpeg'})
+#     return {"imgName": filename}
 
 if __name__ == '__main__':
     flaskrun(application)
