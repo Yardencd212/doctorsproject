@@ -65,7 +65,7 @@ def del_doc():
     print (str(resp))
     return Response(json.dumps(str(resp)), mimetype='application/json', status=200)
 
-#curl localhost:8000/analyze/doctorspictures/stato.jpg 
+#curl localhost:8000/analyze/doctorspictures/doc1.jpg
 
 @application.route('/analyze/<bucket>/<image>', methods=['GET'])
 def analyze(bucket='doctorspictures', image='stato.jpg'):
@@ -93,7 +93,6 @@ def compare_face(source_image, target_image):
     # change region and bucket accordingly
     region = 'us-east-1'
     bucket_name = 'doctorspictures'
-	
     rekognition = boto3.client("rekognition", region)
     response = rekognition.compare_faces(
         SourceImage={
@@ -114,8 +113,6 @@ def compare_face(source_image, target_image):
     # return 0 if below similarity threshold
     return json.dumps(response['FaceMatches'] if response['FaceMatches'] != [] else [{"Similarity": 0.0}])
   
-  
-  ##
 @application.route('/upload_image' , methods=['POST'])
 def uploadImage():
     mybucket = 'doctorspictures'
@@ -126,7 +123,7 @@ def uploadImage():
     filename = "%s.jpg" % dt_string
     s3.Bucket(mybucket).upload_fileobj(filobject, filename, ExtraArgs={'ACL': 'public-read', 'ContentType': 'image/jpeg'})
     imageUrl='https://doctorspictures.s3.amazonaws.com/%s'%filename
-    return {"imageUrl": imageUrl}
+    return {"imageUrl": imageUrl,"filename": filename};
 
 if __name__ == '__main__':
     flaskrun(application)
